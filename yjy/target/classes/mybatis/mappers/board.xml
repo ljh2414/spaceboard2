@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="board">
+<!-- 공통으로 사용할 SQL 작성 -->
+		<sql id="search">
+		<if test="searchType != null">
+			<if test="searchType == 't'.toString()">
+				where title like '%' || #{keyword} || '%'
+			</if>
+			<if test="searchType == 'c'.toString()">
+				where content like '%' || #{keyword} || '%'
+			</if>		
+		</if>
+	</sql>
+
+<!-- 게시판 글 올리는 SQL -->
+<insert id="register" parameterType="Board">
+insert into yjyboard(bno, title, content, id, nickname)
+values(boardseq.nextval, #{title}, #{content}, #{id}, #{nickname})
+</insert>
+
+<!-- 페이징 처리 -->
+<select id="list" resultType="Board" parameterType="SearchCriteria" >
+	select bno, title, nickname, regdate, readcnt, id
+	from (select rownum rnum, bno, title, nickname, regdate, readcnt, id
+		  from (select * from yjyboard <include refid="search"></include>
+		  order by decode(id,'admin',id), regdate desc 
+		   
+		   ))
+	where rnum &gt;= #{pageStart} and 
+	      rnum &lt;= #{pageStart} + #{perPageNum} - 1	
+</select>	 
+
+<!-- 게시글 조회수 올라가는 SQL -->
+<update id="updatecnt" parameterType="java.lang.Integer">
+	update yjyboard
+	set readcnt = readcnt + 1
+	where bno = #{bno}
+</update>
+
+<!-- 게시글 상세보기 SQL -->
+<select id="detail" parameterType="java.lang.Integer" resultType="Board">
+	select *
+	from yjyboard
+	where bno = #{bno}
+</select>
+
+<!-- 게시글 수정하는 SQL -->
+<update id="update" parameterType="Board">
+	update yjyboard
+	set title=#{title}, content=#{content}, regdate=sysdate
+	where bno=#{bno}
+</update>
+
+<!-- 게시글 삭제하는 SQL -->
+<delete id="delete" parameterType="java.lang.Integer">
+	delete from yjyboard
+	where bno = #{bno}
+</delete>
+
+<!-- 전체 게시글 구하는 SQL -->
+<select id="totalcount" resultType="java.lang.Integer" parameterType="SearchCriteria">
+	select count(*)
+	from yjyboard
+	<include refid="search"></include>
+</select>
+
+
+</mapper>
